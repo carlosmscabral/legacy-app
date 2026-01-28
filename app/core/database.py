@@ -17,14 +17,15 @@ class Database:
 
     async def connect(self):
         if not self.pool:
+            host_val = settings.DB_HOST.strip()
             logger.info("INITIATING ALLOYDB CONNECTION ATTEMPT...")
-            logger.info(f"Connection Parameters: host='{settings.DB_HOST}', port={settings.DB_PORT}, user='{settings.DB_USER}', database='{settings.DB_NAME}'")
+            logger.info(f"Connection Parameters: host='{host_val}' (len={len(host_val)}), type={type(host_val)}, port={settings.DB_PORT}, user='{settings.DB_USER}'")
             try:
                 self.pool = await asyncpg.create_pool(
                     user=settings.DB_USER.strip(),
                     password=settings.DB_PASSWORD.strip(),
                     database=settings.DB_NAME.strip(),
-                    host=settings.DB_HOST.strip(),
+                    host=host_val,
                     port=settings.DB_PORT,
                     min_size=1,
                     max_size=10,
