@@ -1,27 +1,51 @@
 import asyncpg
+import logging
+import sys
 from app.core.config import settings
 from typing import Optional
+
+# Configure excruciating logging to stdout
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
 
 class Database:
     pool: Optional[asyncpg.Pool] = None
 
     async def connect(self):
         if not self.pool:
-            self.pool = await asyncpg.create_pool(
-                user=settings.DB_USER,
-                password=settings.DB_PASSWORD,
-                database=settings.DB_NAME,
-                host=settings.DB_HOST,
-                port=settings.DB_PORT,
-            )
+            logger.info("INITIATING ALLOYDB CONNECTION ATTEMPT...")
+            logger.debug(f"Connection Parameters: host={settings.DB_HOST}, port={settings.DB_PORT}, user={settings.DB_USER}, database={settings.DB_NAME}")
+            try:
+                self.pool = await asyncpg.create_pool(
+                    user=settings.DB_USER,
+                    password=settings.DB_PASSWORD,
+                    database=settings.DB_NAME,
+                    host=settings.DB_HOST,
+                    port=settings.DB_PORT,
+                    min_size=1,
+                    max_size=10,
+                    command_timeout=60.0
+                )
+                logger.info("✅ ALLOYDB CONNECTION POOL ESTABLISHED SUCCESSFULLY.")
+            except Exception as e:
+                logger.error(f"❌ FAILED TO CREATE ALLOYDB POOL: {str(e)}", exc_info=True)
+                raise
 
     async def disconnect(self):
         if self.pool:
+            logger.info("CLOSING ALLOYDB CONNECTION POOL...")
             await self.pool.close()
+            logger.info("✅ ALLOYDB CONNECTION POOL CLOSED.")
 
     async def get_connection(self) -> asyncpg.Connection:
         if not self.pool:
+             logger.warning("Connection requested but pool not initialized. Attempting connect().")
              await self.connect()
+        logger.debug("Acquiring connection from pool...")
         return self.pool.acquire()
 
 db = Database()

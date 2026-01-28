@@ -15,6 +15,11 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /usr/src/app
 
+# Set production environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
+
 RUN addgroup --system app && adduser --system --group app
 USER app
 
@@ -25,4 +30,14 @@ COPY --chown=app:app . .
 
 EXPOSE 8080
 
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8080", "--workers", "1", "--access-logfile", "-", "--error-logfile", "-"]
+# Increased timeout and explicit logging for Cloud Run
+CMD ["gunicorn", \
+     "-k", "uvicorn.workers.UvicornWorker", \
+     "app.main:app", \
+     "--bind", "0.0.0.0:8080", \
+     "--workers", "1", \
+     "--timeout", "90", \
+     "--keep-alive", "5", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "--log-level", "debug"]
