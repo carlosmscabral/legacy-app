@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any
 import asyncpg
@@ -5,6 +6,7 @@ from app.core.database import get_db_pool
 from app.api.v1.schemas.user import UserCreate, UserResponse
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("", response_model=Dict[str, Any])
 async def get_users(pool: asyncpg.Pool = Depends(get_db_pool)):
@@ -14,6 +16,7 @@ async def get_users(pool: asyncpg.Pool = Depends(get_db_pool)):
             users = [dict(row) for row in rows]
             return {'count': len(users), 'users': users}
     except Exception as e:
+        logger.error(f"Error fetching users: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -27,6 +30,7 @@ async def get_user(user_id: int, pool: asyncpg.Pool = Depends(get_db_pool)):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error fetching user {user_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("", response_model=UserResponse, status_code=201)
@@ -42,6 +46,7 @@ async def create_user(user: UserCreate, pool: asyncpg.Pool = Depends(get_db_pool
     except asyncpg.UniqueViolationError:
         raise HTTPException(status_code=409, detail="Email already exists")
     except Exception as e:
+        logger.error(f"Error creating user: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{user_id}")
@@ -55,4 +60,5 @@ async def delete_user(user_id: int, pool: asyncpg.Pool = Depends(get_db_pool)):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error deleting user {user_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
