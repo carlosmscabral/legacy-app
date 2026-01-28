@@ -32,6 +32,22 @@ class Database:
                     command_timeout=60.0
                 )
                 logger.info("✅ ALLOYDB CONNECTION POOL ESTABLISHED SUCCESSFULLY.")
+                
+                # --- AUTO-INITIALIZE TABLE ---
+                async with self.pool.acquire() as conn:
+                    logger.info("VERIFYING DATABASE SCHEMA...")
+                    await conn.execute('''
+                        CREATE TABLE IF NOT EXISTS users (
+                            id SERIAL PRIMARY KEY,
+                            name VARCHAR(100) NOT NULL,
+                            email VARCHAR(100) UNIQUE NOT NULL,
+                            department VARCHAR(100) DEFAULT 'General',
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        );
+                    ''')
+                    logger.info("✅ DATABASE SCHEMA IS READY.")
+                # -----------------------------
+
             except Exception as e:
                 logger.error(f"❌ FAILED TO CREATE ALLOYDB POOL: {str(e)}", exc_info=True)
                 raise
